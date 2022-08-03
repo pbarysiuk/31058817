@@ -73,7 +73,7 @@ services:
     environment:
       - DOMAIN
     depends_on:
-      - cotun
+      - coturn
     ports:
       - 80:80
       - 443:443
