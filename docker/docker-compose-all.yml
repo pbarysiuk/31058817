@@ -66,7 +66,7 @@ services:
       - ./certbot/data:/var/www/certbot
 
 #Nginx all that
-nginx:
+  nginx:
     container_name: nginx
     image: nginx:latest
     restart: unless-stopped
@@ -82,6 +82,7 @@ nginx:
       - ./etc/nginx/templates:/etc/nginx/templates:ro
       - ./etc/letsencrypt:/etc/letsencrypt:ro # mounting the folder to the nginx container 
       - ./certbot/data:/var/www/certbot
+
 # Coturn
   coturn:
     build:
