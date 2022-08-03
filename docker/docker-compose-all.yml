@@ -1,7 +1,44 @@
 version: "3"
 services:
 
-# MySQL mariadb
+
+# # PostgreSQL
+#   postgresql:
+#     image: postgres
+#     restart: unless-stopped
+#     volumes:
+#       - ./postgresql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+#       - postgresql-data:/var/lib/postgresql
+#     env_file: 
+#       - postgresql/postgresql.env
+#     networks:
+#       - backend
+
+# # Redis
+#   redis:
+#     image: redis
+#     restart: unless-stopped
+#     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+#     volumes:
+#       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+#       - redis-data:/data
+#     env_file: 
+#       - redis/redis.env
+#     networks:
+#       - backend
+
+# # MongoDB
+#   mongodb:
+#     image: mongo
+#     restart: unless-stopped
+#     volumes:
+#       - mongodb-data:/data/db
+#     env_file: 
+#       - mongodb/mongodb.env
+#     networks:
+#       - backend
+
+#MySQL mariadb
   mysql:
     image: mariadb
     restart: unless-stopped
@@ -14,43 +51,37 @@ services:
     networks:
       - backend
 
-# PostgreSQL
-  postgresql:
-    image: postgres
-    restart: unless-stopped
+#Letsencrypt that stuff
+  certbot:
+    container_name: certbot
+    image: certbot/certbot:latest
+    depends_on:
+      - coturn
+    command: >-
+             certonly --reinstall --webroot --webroot-path=/var/www/certbot
+             --email 'sh.holod@gmail.com' --agree-tos --no-eff-email
+             -d 'b2bf-83-22-229-146.eu.ngrok.io'
     volumes:
-      - ./postgresql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
-      - postgresql-data:/var/lib/postgresql
-    env_file: 
-      - postgresql/postgresql.env
-    networks:
-      - backend
+      - ./etc/letsencrypt:/etc/letsencrypt
+      - ./certbot/data:/var/www/certbot
 
-# Redis
-  redis:
-    image: redis
+#Nginx all that
+nginx:
+    container_name: nginx
+    image: nginx:latest
     restart: unless-stopped
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    environment:
+      - DOMAIN
+    depends_on:
+      - cotun
+    ports:
+      - 80:80
+      - 443:443
+       # mapping port 443 to the container's port 443 for https
     volumes:
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-      - redis-data:/data
-    env_file: 
-      - redis/redis.env
-    networks:
-      - backend
-
-# MongoDB
-  mongodb:
-    image: mongo
-    restart: unless-stopped
-    volumes:
-      - mongodb-data:/data/db
-    env_file: 
-      - mongodb/mongodb.env
-    networks:
-      - backend
-
-
+      - ./etc/nginx/templates:/etc/nginx/templates:ro
+      - ./etc/letsencrypt:/etc/letsencrypt:ro # mounting the folder to the nginx container 
+      - ./certbot/data:/var/www/certbot
 # Coturn
   coturn:
     build:
@@ -84,21 +115,21 @@ services:
       - backend
     depends_on:
       - mysql
-      - postgresql
-      - redis
-      - mongodb
+      # - postgresql
+      # - redis
+      # - mongodb
     env_file:
       - coturn/coturn.env
 # DB
       - mysql/mysql.env
-      - postgresql/postgresql.env
-      - redis/redis.env
-      - mongodb/mongodb.env
+      # - postgresql/postgresql.env
+      # - redis/redis.env
+      # - mongodb/mongodb.env
 volumes:
   mysql-data:
-  postgresql-data:
-  redis-data:
-  mongodb-data:
+  # postgresql-data:
+  # redis-data:
+  # mongodb-data:
 
 networks:
   frontend:
